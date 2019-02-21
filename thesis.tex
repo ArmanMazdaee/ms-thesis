@@ -1,0 +1,37 @@
+\documentclass[12pt]{report}
+
+%Packages
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage[a4paper]{geometry}
+\usepackage{xepersian}
+
+\settextfont{XB Zar}
+
+\begin{document}
+
+\input{./covers/persian.tex}
+
+\newpage
+\pagestyle{plain}
+\setcounter{page}{1}
+\pagenumbering{harfi}
+\input{./chapters/abstract}
+\input{./chapters/preface}
+\tableofcontents
+
+\newpage
+\pagestyle{plain}
+\setcounter{page}{1}
+\pagenumbering{arabic}
+\input{./chapters/preliminary}
+
+\chapter*{واژه‌نامه فارسی به انگلیسی}
+\chapter*{ واژه‌نامه انگلیسی به فارسی}
+
+\begin{thebibliography}{MM}
+\end{thebibliography}
+
+\newpage
+\input{./covers/english.tex}
+\end{document}
