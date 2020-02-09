@@ -232,3 +232,51 @@ $TP$ تعداد نت‌هایی هست که به درستی تشخیص داده 
 \end{latin}
 \end{algorithmic}
 \end{algorithm}
+
+\section{الگوریتم تبدیل دنباله‌ی نت به رول پیانو}
+هر \gls{pianoroll} شامل ۴ ماتریس است که به ترتیب نشان‌دهنده فعال بودن نت، شروع
+نت، پایان نت و \gls{velocity} نت می‌باشند. هر ماتریس ۸۸ سطر دارد که متناظر با ۸۸
+کلاویه پپانو است. همچنین هر ستون این ماتریس‌ها نماینده یک فرم می‌باشد.
+
+برای تبدیل کافی است تا نت‌ها به ترتیب زمان شروع مرتب شوند. سپس زمان شروع و پایان
+هر نت بر طول هر فرم، که در این پایان‌نامه برابر ۳۲ میلی‌ثانیه است، تقسیم شود تا
+شماره ستون متناظر به دست آید. سپس کافی هست در هر ماتریس درایه‌های متناسب یک شوند
+و بقیه درایه‌ها صفر بمانند. همچنین برای ماتریس مربوط به \gls{velocity} نت‌ها
+مقدار درایه برابر با \gls{velocity} نت تقسیم بر بیشینه \gls{velocity} قطعه است.
+
+شبه کد زیر الگوریتم تبدیل دنباله‌ی نت به \gls{pianoroll} را نشان داده است.
+
+\begin{algorithm}
+\caption{تبدیل دنباله‌ی نت به \gls{pianoroll}}
+\begin{algorithmic}
+\begin{latin}
+    \Require $frame\_duration$, $notesequence$
+    \Ensure $actives$, $onsets$, $offsets$, $velocities$
+    \State $notesequence\_duration \leftarrow$ max of all offsets
+    \State $max\_velocity \leftarrow$ max of all velocities
+    \State $num\_frames \leftarrow \lfloor notesequence\_duration / frame\_duration \rfloor + 1$
+    \State $actives \leftarrow$ zero matrix of size $88 \times num\_frames$
+    \State $onsets \leftarrow$ zero matrix of size $88 \times num\_frames$
+    \State $offsets \leftarrow$ zero matrix of size $88 \times num\_frames$
+    \State $velocities \leftarrow$ zero matrix of size $88 \times num\_frames$
+    \State sort $notesequence$ by $onset$
+    \For {$note$ in $notesequence$}
+        \State $pitch \leftarrow note.pitch - 21$
+        \If {$pitch < 0$ or $pitch > 87$}
+            \State continue
+        \EndIf
+        \State $start \leftarrow \lfloor note.onset / frame\_duration \rfloor$
+        \State $end \leftarrow \lfloor note.offset / frame\_duration \rfloor$
+        \If {$start$ is $end$}
+            \State continue
+        \EndIf
+        \State $actives_{pitch, start:end} \leftarrow 1$
+        \State $onsets{pitch, start} \leftarrow 1$
+        \State $offsets{pitch, end} \leftarrow 1$
+        \State $velocities_{pitch, start:end} \leftarrow note.velocity / max\_velocity$
+    \EndFor
+\end{latin}
+\end{algorithmic}
+\end{algorithm}
+
+\section{الگوریتم تبدیل رول پیانو به دنباله‌ی نت}
