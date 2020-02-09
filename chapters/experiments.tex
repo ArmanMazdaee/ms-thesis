@@ -147,3 +147,88 @@ $TP$ تعداد نت‌هایی هست که به درستی تشخیص داده 
 حال در صورتی که اختلاف $v_r(i)$ با $v_e^\prime(i)$ کمتر از یک دهم باشد یال $i$ام
 در تطابق می‌ماند در غیر این صورت حذف می‌شود. در نهایت مقادیر \gls{precision}،‌
 \gls{recall} و \lr{F1} برای تطابق به روز شده محاسبه می‌شود.
+
+\section{الگوریتم تبدیل MIDI به دنباله‌ی نت}
+اطلاعات در فایل‌های \gls{MIDI} به شکل دنباله‌ای از رخدادها ذخیره می‌شوند. هر
+رخداد از سه بایت تشکیل شده که شامل اطلاعاتی همچنون نوع رخداد و فاصله زمانی از
+رخداد قبلی می‌شود. مهم‌ترین این رخدادها رخدادهای فعال شدن و غیر فعال شدن نت‌ها
+هستند که اطلاعات \gls{velocity} نت را نیز شامل می‌شوند. همچنین در پیانو رخداد
+تغییر وضعیت پدال \gls{sustain} نیز اهمیت زیادی دارد.
+
+پدال \gls{sustain} در پیانو به این شکل عمل می‌کند که در زمان فشرده بودن پلاد حتی
+اگر کلاویه توسط نوازنده رها شود، نت همچنان فعال می‌ماند. نت فعال تنها در صورت
+تمام می‌شود نوازنده مجددا همان کلاویه را فشار دهد یا پدال \gls{sustain} را رها
+کند. در نتیجه برای تولید دنباله‌ی نت از فایل \gls{MIDI} توجه به تغییرات پدال
+\gls{sustain} لازم است.
+
+در شبه کدی که در ادامه آمده است الگوریتم تبدیل فایل \gls{MIDI} به دنباله‌ی نت
+نشان داده شده است.
+
+\begin{algorithm}
+\caption{تبدیل \gls{MIDI} به دنباله‌ی نت}
+\begin{algorithmic}
+\begin{latin}
+    \Require $midi$
+    \Ensure $notesequence$
+    \State $notesequence \leftarrow \emptyset$
+    \State $actives \leftarrow \emptyset$
+    \State $time \leftarrow 0$
+    \State $sustain \leftarrow false$
+    \For {$event$ in $midi$}
+        \State $time \leftarrow time + event.delay$
+        \If {$event.type$ is $NoteOn$}
+            \If {$sustain$ is $true$}
+                \For {$note$ in $actives$}
+                    \If {$note.pitch$ is $event.value$}
+                        \State $note.offset \leftarrow time$
+                        \State $actives \leftarrow actives \setminus \{note\}$
+                        \State $notesequence \leftarrow notesequence \cup \{note\}$
+                    \EndIf
+                \EndFor
+            \EndIf
+            \State $note \leftarrow Note()$
+            \State $note.pitch \leftarrow event.value$
+            \State $note.velocity \leftarrow event.velocity$
+            \State $note.onset \leftarrow time$
+            \State $actives \leftarrow actives \cup \{note\}$
+        \ElsIf {$event.type$ is $NoteOff$}
+            \For {$note$ in $actives$}
+                \If {$note.pitch$ is $event.value$}
+                    \State $note.offset \leftarrow time$
+                    \If {$sustain$ is $false$}
+                        \State $actives \leftarrow actives \setminus \{note\}$
+                        \State $notesequence \leftarrow notesequence \cup \{note\}$
+                    \EndIf
+                \EndIf
+            \EndFor
+        \ElsIf {$event.type$ is $SustainChange$ and $event.value \geq 64$}
+            \State $sustain \leftarrow true$
+        \ElsIf {$event.type$ is $SustainChange$ and $event.value < 64$}
+            \State $sustain \leftarrow false$
+\algstore{miditonotesequence}
+\end{latin}
+\end{algorithmic}
+\end{algorithm}
+\setcounter{algorithm}{0}
+\begin{algorithm}
+\caption{ادامه تبدیل \gls{MIDI} به دنباله‌ی نت}
+\begin{algorithmic}
+\begin{latin}
+\algrestore{miditonotesequence}
+            \For {$note$ in $actives$}
+                \If {$note.offset$ is not $null$}
+                    \State $note.offset \leftarrow time$
+                    \State $actives \leftarrow actives \setminus \{note\}$
+                    \State $notesequence \leftarrow notesequence \cup \{note\}$
+                \EndIf
+            \EndFor
+        \EndIf
+    \EndFor
+    \For {$note$ in $actives$}
+        \State $note.offset \leftarrow time$
+        \State $actives \leftarrow actives \setminus \{note\}$
+        \State $notesequence \leftarrow notesequence \cup \{note\}$
+    \EndFor
+\end{latin}
+\end{algorithmic}
+\end{algorithm}
