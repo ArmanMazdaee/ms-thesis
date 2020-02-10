@@ -271,8 +271,8 @@ $TP$ تعداد نت‌هایی هست که به درستی تشخیص داده 
             \State continue
         \EndIf
         \State $actives_{pitch, start:end} \leftarrow 1$
-        \State $onsets{pitch, start} \leftarrow 1$
-        \State $offsets{pitch, end} \leftarrow 1$
+        \State $onsets_{pitch, start} \leftarrow 1$
+        \State $offsets_{pitch, end} \leftarrow 1$
         \State $velocities_{pitch, start:end} \leftarrow note.velocity / max\_velocity$
     \EndFor
 \end{latin}
@@ -280,3 +280,61 @@ $TP$ تعداد نت‌هایی هست که به درستی تشخیص داده 
 \end{algorithm}
 
 \section{الگوریتم تبدیل رول پیانو به دنباله‌ی نت}
+برای ارزیابی عملکرد مدل لازم هست تا \gls{pianoroll} تولید شده توسط مدل به
+دنباله‌ی نت تبدیل شود. برای این تبدیل باید به ازای هر نت فعال شدن و در جهت
+فرم‌ها حرکت کنیم. اگر مدل شروع شدن نتی را تشخیص داد حتی اگر در آن فرم نت غیر
+فعال تشخیص داده شود نت فعال فرض می‌شود. همچنین در صورتی که مدل تمام شدن نتی را
+تشخیص دهد حتی در صورت تشخیص فعال بودن نت در آن فرم، نت غیر فعال فرض می‌شود.
+همچنین اگر نتی فعال بود و مدل شروع دوباره‌ای برای آن تشخیص دهد، نت قبلی تمام شده
+فرض می‌شود و مجددا همان نت شروع می‌شود.
+
+در شبه کد زیر الگوریتم تبدیل \gls{pianoroll} به دنباله‌ی نت نشان داده شده است.
+\begin{algorithm}
+\caption{تبدیل \gls{pianoroll} به دنباله‌ی نت}
+\begin{algorithmic}
+\begin{latin}
+    \Require $actives$, $onsets$, $offsets$, $velocities$, $frame\_duration$
+    \Ensure $notesequence$
+    \State $notesequence \leftarrow \emptyset$
+    \State $num\_frames \leftarrow actives.shape[1]$
+    \For {$pitch$ from $0$ to $88$}
+        \State $start \leftarrow null$
+        \For {$frame$ from $0$ to $num\_frames$}
+            \State $is\_onset \leftarrow onsets_{pitch, frame} \geq 0.5$
+            \State $is\_previous\_onset \leftarrow false$
+            \If {$frame > 0$}
+                \State $is\_previous\_onset \leftarrow onsets_{pitch, frame-1} \geq 0.5$
+            \EndIf
+            \State $is\_offset \leftarrow offsets_{pitch, frame} \geq 0.5$
+            \State $is\_active \leftarrow actives_{pitch, frame} \geq 0.5$
+            \State $is\_active \leftarrow is\_active$ and not $is\_offset$
+            \State $is\_active \leftarrow is\_active$ or $is\_onset$
+            \If {$is\_onset$ and $start$ is $null$}
+                \State $start \leftarrow frame$
+            \ElsIf {$is\_onset$ and not $is\_previous\_onset$}
+                \State $note \leftarrow Note()$
+                \State $note.pitch \leftarrow pitch$
+                \State $note.onset \leftarrow start * frame\_duration$
+                \State $note.offset \leftarrow frame * frame\_duration$
+                \State $note.velocity \leftarrow max(min(velocities_{pitch, start}, 1), 0) * 80 + 10$
+                \State $start \leftarrow frame$
+            \ElsIf {not $is_active$ and $start$ is not $null$}
+                \State $note \leftarrow Note()$
+                \State $note.pitch \leftarrow pitch$
+                \State $note.onset \leftarrow start * frame\_duration$
+                \State $note.offset \leftarrow frame * frame\_duration$
+                \State $note.velocity \leftarrow max(min(velocities_{pitch, start}, 1), 0) * 80 + 10$
+                \State $start \leftarrow null$
+            \EndIf
+            \If {$start$ is not $null$}
+                \State $note \leftarrow Note()$
+                \State $note.pitch \leftarrow pitch$
+                \State $note.onset \leftarrow start * frame\_duration$
+                \State $note.offset \leftarrow num\_frames * frame\_duration$
+                \State $note.velocity \leftarrow max(min(velocities_{pitch, start}, 1), 0) * 80 + 10$
+            \EndIf
+        \EndFor
+    \EndFor
+\end{latin}
+\end{algorithmic}
+\end{algorithm}
